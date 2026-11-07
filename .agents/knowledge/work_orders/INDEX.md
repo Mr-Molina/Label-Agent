@@ -1,0 +1,19 @@
+# Work Orders Index (`Label-Agent`)
+
+| ID | Timestamp | Subagent Role | Task Goal | Status | Handoff Path |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `WO-001` | 2026-11-07T16:05:00Z | Toolchain & Config Architect | `.gitignore`, `rustfmt.toml`, `.cargo/config.toml` | `[EXECUTED & VERIFIED]` | `.agents/knowledge/subagent_summaries/2026-11-07_Toolchain_and_Config_Architect.md` |
+| `WO-002` | 2026-11-07T16:05:00Z | Workspace Manifest Architect | Root `Cargo.toml` with 6-crate workspace & Google lints | `[EXECUTED & VERIFIED]` | `.agents/knowledge/subagent_summaries/2026-11-07T11-05-00_Workspace_Manifest_Architect.md` |
+| `WO-003` | 2026-11-07T16:05:00Z | Documentation & Governance Writer | `README.md`, `LICENSE`, `docs/superpowers/plans/2026-11-07-label-agent-foundation.md` | `[EXECUTED & VERIFIED]` | `.agents/knowledge/subagent_summaries/2026-11-07_documentation_governance_writer.md` |
+| `WO-004` | 2026-11-07T16:05:00Z | Edge Deployment Engineer | `deploy/systemd/label-agent.service`, `deploy/pi3b-prep-checklist.md` | `[EXECUTED & VERIFIED]` | `.agents/knowledge/subagent_summaries/20261107_160600_edge_deployment_engineer.md` |
+| `WO-005` | 2026-11-07T16:05:00Z | CI Pipeline Engineer | `.github/workflows/ci.yml` | `[EXECUTED & VERIFIED]` | `.agents/knowledge/subagent_summaries/20261107_160601_ci_pipeline_engineer.md` |
+| `WO-006` | 2026-11-07T16:12:00Z | Core Taxonomy & Error Specialist | `crates/label-core/Cargo.toml`, `src/error.rs`, `src/taxonomy.rs` | `[EXECUTED & VERIFIED]` | `.agents/knowledge/subagent_summaries/20261107T161300Z_Core_Taxonomy_and_Error_Specialist.md` |
+| `WO-007` | 2026-11-07T16:12:00Z | Core Specs & Intent Specialist | `crates/label-core/src/label_spec.rs`, `src/intent.rs`, `src/lib.rs` | `[EXECUTED & VERIFIED]` | `.agents/knowledge/subagent_summaries/20261107_core_specs_and_intent.md` |
+| `WO-008` | 2026-11-07T16:18:00Z | Inventory Client Specialist | `crates/label-inventory` (`Cargo.toml`, `error.rs`, `models.rs`, `client.rs`, `lib.rs`) | `[EXECUTED & VERIFIED]` | `.agents/knowledge/subagent_summaries/2026-11-07_Inventory_Client_and_Models.md` |
+| `WO-009` | 2026-11-07T16:18:00Z | Render Primitives Specialist | `crates/label-render` (`Cargo.toml`, `error.rs`, `qr.rs`, `bmp.rs`, `spool.rs`, `zip_store.rs`) | `[EXECUTED & VERIFIED]` | `.agents/knowledge/subagent_summaries/20261107_1622_render_qr_bmp_spool.md` |
+| `WO-010` | 2026-11-07T16:18:00Z | Render Formats Specialist | `crates/label-render` (`odt.rs`, `lbx.rs`, `dymo_pdf.rs`, `lib.rs`) | `[EXECUTED & VERIFIED]` | `.agents/knowledge/subagent_summaries/20261107_162100_render_lbx_dymo_pdf.md` |
+| `WO-011` | 2026-11-07T16:18:00Z | Print Spooler Specialist | `crates/label-print` (`Cargo.toml`, `error.rs`, `transport.rs`, `cups.rs`, `lib.rs`) | `[EXECUTED & VERIFIED]` | `.agents/knowledge/subagent_summaries/20261107_162100_Print_Transport_CUPS.md` |
+| `WO-012` | 2026-11-07T16:18:00Z | Voice Pipeline Specialist | `crates/label-voice` (`Cargo.toml`, `error.rs`, `capture.rs`, `parser.rs`, `lib.rs`) | `[EXECUTED & VERIFIED]` | `.agents/knowledge/subagent_summaries/2026-11-07_Voice_Capture_and_Parser.md` |
+| `WO-013` | 2026-11-07T16:18:00Z | Daemon Orchestrator Specialist | `crates/label-agent-daemon` (`Cargo.toml`, `cli.rs`, `app.rs`, `main.rs`) | `[EXECUTED & VERIFIED]` | `.agents/knowledge/subagent_summaries/20261107_162148_daemon_orchestrator_app.md` |
+| `WO-014` | 2026-11-07T16:25:00Z | Style & Lint Hardening Wave | `GRS-012` comment/code width & raw string fix across all 6 crates | `[EXECUTED & VERIFIED]` | `.agents/knowledge/subagent_summaries/20261107_wo016b_daemon_cli_exhaustive_match_fix.md` |
+| `WO-017` | 2026-11-07T16:36:30Z | Cleanup & Git Publisher | Clean transient scratch files, commit workspace, create & push `Mr-Molina/Label-Agent` | `[EXECUTED & VERIFIED]` | `.agents/knowledge/subagent_summaries/20261107_wo017_git_publish.md` |

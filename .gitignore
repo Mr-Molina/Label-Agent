@@ -1,0 +1,23 @@
+# Rust build artifacts
+/target/
+**/*.rs.bk
+
+# Environment & secrets
+.env
+.env.*
+
+# Editor temporary & swap files
+*.swp
+*.swo
+*~
+
+# Temporary runtime directories
+/tmp/
+.superpowers/
+
+# Generated label artifacts & scratch exports
+*.odt
+*.lbx
+*.pdf
+*.bmp
+*.png

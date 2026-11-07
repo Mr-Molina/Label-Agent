@@ -1,0 +1,17 @@
+[package]
+name = "label-render"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+description = "Pure-Rust QR code, 1-bit BMP, ODT, Brother LBX, and Dymo 30256 PDF label compiler and RAM spooler"
+
+[dependencies]
+label-core = { workspace = true }
+qrcode = { workspace = true }
+thiserror = { workspace = true }
+
+[lints]
+workspace = true

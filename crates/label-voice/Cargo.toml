@@ -1,0 +1,16 @@
+[package]
+name = "label-voice"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+description = "Voice command capture abstractions and intent parser for Label-Agent"
+
+[dependencies]
+label-core = { workspace = true }
+thiserror = { workspace = true }
+
+[lints]
+workspace = true

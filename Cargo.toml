@@ -1,0 +1,66 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/label-core",
+    "crates/label-inventory",
+    "crates/label-render",
+    "crates/label-print",
+    "crates/label-voice",
+    "crates/label-agent-daemon",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.75"
+license = "MIT OR Apache-2.0"
+authors = ["Mr-Molina"]
+repository = "https://github.com/Mr-Molina/Label-Agent"
+
+[workspace.dependencies]
+label-core = { path = "crates/label-core" }
+label-inventory = { path = "crates/label-inventory" }
+label-render = { path = "crates/label-render" }
+label-print = { path = "crates/label-print" }
+label-voice = { path = "crates/label-voice" }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+thiserror = "2.0"
+ureq = { version = "2.10", features = ["json"] }
+qrcode = { version = "0.14", default-features = false }
+lexopt = "0.3"
+
+[workspace.lints.rust]
+missing_docs = "warn"
+unsafe_op_in_unsafe_fn = "deny"
+static_mut_refs = "deny"
+unreachable_pub = "warn"
+missing_debug_implementations = "warn"
+
+[workspace.lints.clippy]
+borrowed_box = "deny"
+ptr_arg = "deny"
+should_implement_trait = "deny"
+new_without_default = "warn"
+wrong_self_convention = "deny"
+len_without_is_empty = "deny"
+exhaustive_enums = "warn"
+exhaustive_structs = "warn"
+wildcard_imports = "deny"
+ref_option = "warn"
+undocumented_unsafe_blocks = "deny"
+multiple_unsafe_ops_per_block = "warn"
+unwrap_used = "warn"
+dbg_macro = "warn"
+todo = "warn"
+needless_for_each = "warn"
+must_use_candidate = "warn"
+doc_markdown = "warn"
+missing_errors_doc = "warn"
+missing_panics_doc = "warn"
+missing_safety_doc = "deny"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+strip = "symbols"

@@ -1,0 +1,43 @@
+[Unit]
+Description=Label-Agent Autonomous Voice & Inventory Label Appliance
+Documentation=https://github.com/Mr-Molina/Label-Agent
+After=network-online.target cups.service ntpsec.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=console-admin
+Group=console-admin
+SupplementaryGroups=audio lp
+
+ExecStart=/usr/local/bin/label-agent --daemon --spool-dir /tmp/label-agent --printer Dymo_LabelWriter_450
+Restart=on-failure
+RestartSec=5s
+
+# Resource limits targeting Raspberry Pi 3 Model B+ (1GB RAM)
+MemoryHigh=192M
+MemoryMax=256M
+CPUQuota=350%
+
+# Sandboxing and tmpfs Spool Isolation
+# PrivateTmp=no enables sharing the RAM-backed tmpfs mount at /tmp
+PrivateTmp=no
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/tmp
+NoNewPrivileges=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictRealtime=true
+RestrictNamespaces=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+LimitNOFILE=65536
+
+# Environment configuration
+Environment=RUST_LOG=info,label_agent=debug
+Environment=TMPDIR=/tmp
+
+[Install]
+WantedBy=multi-user.target
