@@ -18,6 +18,7 @@ pub struct PrintJob {
     artifact_path: PathBuf,
     format: LabelFormat,
     copies: u8,
+    mode: PrintMode,
 }
 
 impl PrintJob {
@@ -45,7 +46,39 @@ impl PrintJob {
             artifact_path,
             format,
             copies,
+            mode: PrintMode::ExecutePrint,
         })
+    }
+
+    /// Creates a new `PrintJob` with an explicit `PrintMode`.
+    ///
+    /// # Errors
+    /// Returns `PrintError::EmptyQueueName` if `queue_name` is empty or only
+    /// whitespace.
+    /// Returns `PrintError::ZeroCopies` if `copies == 0`.
+    pub fn new_with_mode(
+        queue_name: &str,
+        artifact_path: PathBuf,
+        format: LabelFormat,
+        copies: u8,
+        mode: PrintMode,
+    ) -> Result<Self, PrintError> {
+        let mut job = Self::new(queue_name, artifact_path, format, copies)?;
+        job.mode = mode;
+        Ok(job)
+    }
+
+    /// Returns the execution mode for this print job.
+    #[must_use]
+    pub const fn mode(&self) -> PrintMode {
+        self.mode
+    }
+
+    /// Sets the execution mode for this print job.
+    #[must_use]
+    pub const fn with_mode(mut self, mode: PrintMode) -> Self {
+        self.mode = mode;
+        self
     }
 
     /// Returns the target printer queue name.

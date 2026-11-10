@@ -4,6 +4,8 @@ pub mod client;
 pub mod error;
 pub mod models;
 
-pub use crate::client::{InventoryConfig, InventoryRepository, SnipeItClient};
+pub use crate::client::{
+    InventoryConfig, InventoryRepository, SnipeItClient, DEFAULT_INVENTORY_URL,
+};
 pub use crate::error::InventoryError;
 pub use crate::models::{AssetDto, LocationDto, PaginatedResponse};

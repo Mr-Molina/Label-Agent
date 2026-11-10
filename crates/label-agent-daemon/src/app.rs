@@ -1,9 +1,16 @@
 //! Main application orchestration and command execution logic for
 //! `label-agent`.
 //!
-//! Provides CLI dispatch, spoken voice command handling, physical print
-//! spooling, and deterministic mock inventory resolution for dry-run
-//! and demonstration environments.
+//! Provides CLI dispatch, spoken voice command handling, `59 mm x 102 mm`
+//! BT320 TSPL2 / PDF / ODT / LBX rendering, physical `/dev/bt320-printer`
+//! (`/dev/usb/lp0`) and CUPS spooling, and an HTTP health/control listener.
+
+use std::io::Read as _;
+use std::io::Write as _;
+use std::net::TcpListener;
+use std::net::TcpStream;
+use std::path::Path;
+use std::path::PathBuf;
 
 use label_core::BoxLabelSpec;
 use label_core::LabelFormat;
@@ -13,22 +20,27 @@ use label_core::PrintMode;
 use label_core::TaxonomyLevel;
 use label_core::VoiceCommandIntent;
 use label_inventory::AssetDto;
+use label_inventory::InventoryConfig;
 use label_inventory::InventoryError;
 use label_inventory::InventoryRepository;
 use label_inventory::LocationDto;
+use label_inventory::SnipeItClient;
 use label_print::CupsTransport;
 use label_print::DryRunTransport;
 use label_print::PrintJob;
 use label_print::PrintTransport;
+use label_print::UsbLpTransport;
+use label_print::FALLBACK_USB_LP_DEVICE;
+use label_render::compile_bt320_tspl;
 use label_render::compile_dymo_pdf;
 use label_render::compile_lbx_label;
 use label_render::compile_odt_label;
 use label_render::SpoolManager;
 use label_voice::parse_spoken_command;
-use std::path::PathBuf;
 
 use crate::cli::help_banner;
 use crate::cli::parse_cli_args;
+use crate::cli::CliOptions;
 
 /// Deterministic mock repository implementing [`InventoryRepository`]
 /// with sample 6-level lineage and assets for dry-run and demo execution.
@@ -107,6 +119,22 @@ impl InventoryRepository for DemoInventoryRepository {
     }
 }
 
+/// Resolves the active USB character device path (`/dev/bt320-printer` or
+/// fallback `/dev/usb/lp0`).
+#[must_use]
+fn resolve_usb_device_path(configured: &Path) -> PathBuf {
+    if configured.exists() {
+        configured.to_path_buf()
+    } else {
+        let fallback = PathBuf::from(FALLBACK_USB_LP_DEVICE);
+        if fallback.exists() {
+            fallback
+        } else {
+            configured.to_path_buf()
+        }
+    }
+}
+
 /// Executes a natural-language or voice command string against the inventory
 /// repository and print pipeline.
 ///
@@ -127,11 +155,14 @@ pub(crate) fn execute_spoken_command<R: InventoryRepository, T: PrintTransport>(
 
     match intent {
         VoiceCommandIntent::PrintBoxLabel { box_code, format } => {
+            let loc = repo
+                .find_location_by_code(&box_code)
+                .map_err(|err| format!("Location lookup error: {err}"))?;
             let lineage = repo
                 .resolve_container_lineage(&box_code)
                 .map_err(|err| format!("Location resolution error: {err}"))?;
             let assets = repo
-                .list_assets_in_location(6)
+                .list_assets_in_location(loc.id())
                 .map_err(|err| format!("Asset lookup error: {err}"))?;
             let items: Vec<String> = assets
                 .iter()
@@ -142,6 +173,11 @@ pub(crate) fn execute_spoken_command<R: InventoryRepository, T: PrintTransport>(
                 .map_err(|err| format!("Label specification error: {err}"))?;
 
             let (ext, bytes) = match format {
+                LabelFormat::Bt320Tspl => (
+                    "tspl",
+                    compile_bt320_tspl(&spec)
+                        .map_err(|err| format!("TSPL2 rendering failed: {err}"))?,
+                ),
                 LabelFormat::Dymo30256Pdf => (
                     "pdf",
                     compile_dymo_pdf(&spec)
@@ -177,11 +213,14 @@ pub(crate) fn execute_spoken_command<R: InventoryRepository, T: PrintTransport>(
             ))
         }
         VoiceCommandIntent::QueryBoxContents { box_code } => {
+            let loc = repo
+                .find_location_by_code(&box_code)
+                .map_err(|err| format!("Location lookup error: {err}"))?;
             let lineage = repo
                 .resolve_container_lineage(&box_code)
                 .map_err(|err| format!("Location resolution error: {err}"))?;
             let assets = repo
-                .list_assets_in_location(6)
+                .list_assets_in_location(loc.id())
                 .map_err(|err| format!("Asset lookup error: {err}"))?;
             let mut lines = Vec::new();
             lines.push(format!(
@@ -198,7 +237,10 @@ pub(crate) fn execute_spoken_command<R: InventoryRepository, T: PrintTransport>(
             asset_tag,
             box_code,
         } => {
-            repo.checkout_asset_to_location(&asset_tag, 6)
+            let loc = repo
+                .find_location_by_code(&box_code)
+                .map_err(|err| format!("Location lookup error: {err}"))?;
+            repo.checkout_asset_to_location(&asset_tag, loc.id())
                 .map_err(|err| format!("Checkout error: {err}"))?;
             Ok(format!("Checked out asset {asset_tag} to box {box_code}"))
         }
@@ -206,7 +248,13 @@ pub(crate) fn execute_spoken_command<R: InventoryRepository, T: PrintTransport>(
             box_code,
             target_parent_code,
         } => {
-            repo.relocate_container(6, 5)
+            let box_loc = repo
+                .find_location_by_code(&box_code)
+                .map_err(|err| format!("Box lookup error: {err}"))?;
+            let parent_loc = repo
+                .find_location_by_code(&target_parent_code)
+                .map_err(|err| format!("Target parent lookup error: {err}"))?;
+            repo.relocate_container(box_loc.id(), parent_loc.id())
                 .map_err(|err| format!("Relocation error: {err}"))?;
             Ok(format!(
                 "Relocated box {box_code} to parent {target_parent_code}"
@@ -216,26 +264,37 @@ pub(crate) fn execute_spoken_command<R: InventoryRepository, T: PrintTransport>(
     }
 }
 
-/// Primary CLI application driver. Parses arguments and executes the requested
-/// operation or launches the daemon.
-///
-/// # Errors
-///
-/// Returns an error message string if arguments are invalid or command
-/// execution fails.
-pub(crate) fn run_from_args(args: &[String]) -> Result<String, String> {
-    let opts = parse_cli_args(args)?;
-    if opts.show_help {
-        return Ok(help_banner().to_string());
-    }
+/// Dispatches a single utterance using configured CLI options and environment.
+fn dispatch_utterance_with_opts(opts: &CliOptions, utterance: &str) -> Result<String, String> {
+    let spooler = SpoolManager::new(opts.spool_dir.clone());
+    let usb_path = resolve_usb_device_path(&opts.usb_device);
+    let api_key = std::env::var("SNIPEIT_API_KEY")
+        .ok()
+        .filter(|v| !v.trim().is_empty());
 
-    let spooler = SpoolManager::new(opts.spool_dir);
-    let repo = DemoInventoryRepository::new();
-
-    if let Some(ref utterance) = opts.command {
-        match opts.print_mode {
-            PrintMode::DryRun => {
-                let transport = DryRunTransport::new();
+    match (opts.print_mode, api_key) {
+        (PrintMode::DryRun, _) => {
+            let repo = DemoInventoryRepository::new();
+            let transport = DryRunTransport::new();
+            execute_spoken_command(
+                utterance,
+                &repo,
+                &spooler,
+                &transport,
+                &opts.printer_queue,
+                &opts.inventory_base_url,
+            )
+        }
+        (PrintMode::ExecutePrint, Some(token)) => {
+            let cfg = InventoryConfig::new(
+                &opts.inventory_base_url,
+                &token,
+                std::time::Duration::from_secs(10),
+            )
+            .map_err(|e| format!("Inventory config error: {e}"))?;
+            let repo = SnipeItClient::new(cfg);
+            if usb_path.exists() {
+                let transport = UsbLpTransport::new(usb_path);
                 execute_spoken_command(
                     utterance,
                     &repo,
@@ -244,8 +303,7 @@ pub(crate) fn run_from_args(args: &[String]) -> Result<String, String> {
                     &opts.printer_queue,
                     &opts.inventory_base_url,
                 )
-            }
-            PrintMode::ExecutePrint => {
+            } else {
                 let transport =
                     CupsTransport::new(PathBuf::from("/usr/bin/lpr"), opts.printer_queue.clone());
                 execute_spoken_command(
@@ -257,10 +315,141 @@ pub(crate) fn run_from_args(args: &[String]) -> Result<String, String> {
                     &opts.inventory_base_url,
                 )
             }
-            _ => Err("unsupported variant".to_owned()),
         }
+        (PrintMode::ExecutePrint, None) => {
+            let repo = DemoInventoryRepository::new();
+            if usb_path.exists() {
+                let transport = UsbLpTransport::new(usb_path);
+                execute_spoken_command(
+                    utterance,
+                    &repo,
+                    &spooler,
+                    &transport,
+                    &opts.printer_queue,
+                    &opts.inventory_base_url,
+                )
+            } else {
+                let transport =
+                    CupsTransport::new(PathBuf::from("/usr/bin/lpr"), opts.printer_queue.clone());
+                execute_spoken_command(
+                    utterance,
+                    &repo,
+                    &spooler,
+                    &transport,
+                    &opts.printer_queue,
+                    &opts.inventory_base_url,
+                )
+            }
+        }
+        _ => Err("unsupported variant".to_owned()),
+    }
+}
+
+/// Handles a single incoming HTTP connection on the daemon control socket.
+pub(crate) fn handle_http_stream(mut stream: TcpStream, opts: &CliOptions) {
+    let mut buf = [0_u8; 4096];
+    let n = match stream.read(&mut buf) {
+        Ok(0) | Err(_) => return,
+        Ok(n) => n,
+    };
+    let req = String::from_utf8_lossy(&buf[..n]);
+    let first_line = req.lines().next().unwrap_or("");
+
+    if first_line.starts_with("GET /healthz") {
+        let usb_path = resolve_usb_device_path(&opts.usb_device);
+        let usb_present = usb_path.exists();
+        let body = format!(
+            "{{\"status\":\"ok\",\"service\":\"label-agent\",\
+            \"board\":\"aml-s905x-cc\",\"inventory_url\":\"{}\",\
+            \"label_geometry\":\"59x102mm\",\"printer_protocol\":\"TSPL2\",\
+            \"usb_device\":\"{}\",\"usb_connected\":{}}}\n",
+            opts.inventory_base_url,
+            usb_path.display(),
+            usb_present
+        );
+        let resp = format!(
+            "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n\
+            Content-Length: {}\r\nConnection: close\r\n\r\n{body}",
+            body.len()
+        );
+        let _ = stream.write_all(resp.as_bytes());
+    } else if first_line.starts_with("POST /api/v1/command") {
+        let body_part = req.split_once("\r\n\r\n").map_or("", |(_, b)| b).trim();
+        let mut call_opts = opts.clone();
+        if body_part.contains("\"dry_run\":true") || body_part.contains("\"dry_run\": true") {
+            call_opts.print_mode = PrintMode::DryRun;
+        }
+        let cmd_text = extract_command_field(body_part).unwrap_or_else(|| body_part.to_owned());
+        match dispatch_utterance_with_opts(&call_opts, &cmd_text) {
+            Ok(msg) => {
+                let escaped = msg.replace('"', "\\\"").replace('\n', "\\n");
+                let json = format!("{{\"status\":\"ok\",\"result\":\"{escaped}\"}}\n");
+                let resp = format!(
+                    "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n\
+                    Content-Length: {}\r\nConnection: close\r\n\r\n{json}",
+                    json.len()
+                );
+                let _ = stream.write_all(resp.as_bytes());
+            }
+            Err(err) => {
+                let escaped = err.replace('"', "\\\"").replace('\n', "\\n");
+                let json = format!("{{\"status\":\"error\",\"error\":\"{escaped}\"}}\n");
+                let resp = format!(
+                    "HTTP/1.1 400 Bad Request\r\nContent-Type: application/json\r\n\
+                    Content-Length: {}\r\nConnection: close\r\n\r\n{json}",
+                    json.len()
+                );
+                let _ = stream.write_all(resp.as_bytes());
+            }
+        }
+    } else {
+        let body = "{\"status\":\"not_found\"}\n";
+        let resp = format!(
+            "HTTP/1.1 404 Not Found\r\nContent-Type: application/json\r\n\
+            Content-Length: {}\r\nConnection: close\r\n\r\n{body}",
+            body.len()
+        );
+        let _ = stream.write_all(resp.as_bytes());
+    }
+}
+
+/// Extracts `"command":"..."` from a simple JSON payload or returns `None`.
+fn extract_command_field(input: &str) -> Option<String> {
+    let key_idx = input.find("\"command\"")?;
+    let after_key = &input[key_idx + 9..];
+    let colon_idx = after_key.find(':')?;
+    let after_colon = after_key[colon_idx + 1..].trim_start();
+    if !after_colon.starts_with('"') {
+        return None;
+    }
+    let rest = &after_colon[1..];
+    let end_quote = rest.find('"')?;
+    Some(rest[..end_quote].to_owned())
+}
+
+/// Primary CLI application driver. Parses arguments and executes the requested
+/// operation or launches the daemon HTTP listener.
+///
+/// # Errors
+///
+/// Returns an error message string if arguments are invalid or command
+/// execution fails.
+pub(crate) fn run_from_args(args: &[String]) -> Result<String, String> {
+    let opts = parse_cli_args(args)?;
+    if opts.show_help {
+        return Ok(help_banner().to_string());
+    }
+
+    if let Some(ref utterance) = opts.command {
+        dispatch_utterance_with_opts(&opts, utterance)
     } else if opts.daemon_mode {
-        Ok("label-agent daemon listening for voice commands...".to_string())
+        let _ = std::fs::create_dir_all(&opts.spool_dir);
+        let listener = TcpListener::bind(&opts.listen_addr)
+            .map_err(|e| format!("Failed to bind {}: {e}", opts.listen_addr))?;
+        for stream in listener.incoming().flatten() {
+            handle_http_stream(stream, &opts);
+        }
+        Ok("label-agent daemon stopped.".to_string())
     } else {
         Ok(help_banner().to_string())
     }
@@ -286,6 +475,17 @@ mod tests {
         ];
         let output = run_from_args(&args).expect("print box label should succeed");
         assert!(output.contains("Printed box label for BOX-042 (pdf)"));
+    }
+
+    #[test]
+    fn test_run_from_args_print_bt320_tspl_dry_run() {
+        let args = vec![
+            "--command".to_string(),
+            "print tspl label for BOX-042".to_string(),
+            "--dry-run".to_string(),
+        ];
+        let output = run_from_args(&args).expect("bt320 tspl print should succeed");
+        assert!(output.contains("Printed box label for BOX-042 (tspl)"));
     }
 
     #[test]
@@ -321,5 +521,14 @@ mod tests {
         assert!(output.contains("BOX-042"));
         assert!(output.contains("Main Campus > F1 > R101 > Rack1 > S1 > BOX-042"));
         assert!(output.contains("Cat6 Patch Cable"));
+    }
+
+    #[test]
+    fn test_extract_command_field() {
+        let json = r#"{"command": "print tspl label for BOX-042", "dry_run": true}"#;
+        assert_eq!(
+            extract_command_field(json).as_deref(),
+            Some("print tspl label for BOX-042")
+        );
     }
 }

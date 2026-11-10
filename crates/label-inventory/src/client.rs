@@ -7,7 +7,22 @@ use crate::models::PaginatedResponse;
 use label_core::LocationNode;
 use label_core::LocationPath;
 use label_core::TaxonomyLevel;
+use serde::Deserialize;
 use std::time::Duration;
+
+/// Canonical default inventory backend URL for Snipe-IT.
+pub const DEFAULT_INVENTORY_URL: &str = "https://inventory.molinadeveloping.com";
+
+/// Default HTTP request timeout for Snipe-IT API operations (10 seconds).
+pub const DEFAULT_TIMEOUT: Duration = Duration::from_secs(10);
+
+/// Internal helper for deserializing Snipe-IT direct or wrapped payloads.
+#[derive(Deserialize)]
+#[serde(untagged)]
+enum ApiResponse<T> {
+    Wrapped { payload: T },
+    Direct(T),
+}
 
 /// Configuration options for connecting to the Snipe-IT inventory service.
 #[non_exhaustive]
@@ -43,6 +58,16 @@ impl InventoryConfig {
         })
     }
 
+    /// Constructs a configuration pointing to the canonical inventory backend.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`InventoryError::EmptyApiToken`] if `api_token` is whitespace.
+    pub fn with_default_url(api_token: impl Into<String>) -> Result<Self, InventoryError> {
+        let token = api_token.into();
+        Self::new(DEFAULT_INVENTORY_URL, &token, DEFAULT_TIMEOUT)
+    }
+
     /// Returns the normalized base URL without a trailing slash.
     #[must_use]
     pub fn base_url(&self) -> &str {
@@ -73,8 +98,13 @@ impl InventoryConfig {
         let trimmed = path.trim().strip_prefix('/').unwrap_or(path.trim());
         if trimmed.is_empty() {
             self.base_url.clone()
-        } else {
+        } else if self.base_url.ends_with("/api/v1") {
+            let api_trimmed = trimmed.strip_prefix("api/v1/").unwrap_or(trimmed);
+            format!("{}/{}", self.base_url, api_trimmed)
+        } else if trimmed.starts_with("api/v1/") || trimmed == "api/v1" {
             format!("{}/{}", self.base_url, trimmed)
+        } else {
+            format!("{}/api/v1/{}", self.base_url, trimmed)
         }
     }
 }
@@ -192,6 +222,53 @@ impl SnipeItClient {
             Err(ureq::Error::Status(status, _)) => {
                 Err(Self::map_http_status(status, &format!("locations/{id}")))
             }
+            Err(ureq::Error::Transport(err)) => Err(InventoryError::HttpTransport {
+                message: err.to_string(),
+            }),
+        }
+    }
+
+    /// Relocates a location record to a new parent location in the hierarchy.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`InventoryError`] on transport, status, or parsing failures.
+    pub fn relocate_location(
+        &self,
+        location_id: u64,
+        new_parent_id: u64,
+    ) -> Result<LocationDto, InventoryError> {
+        let url = self
+            .config
+            .endpoint_url(&format!("api/v1/locations/{location_id}"));
+        let payload = serde_json::json!({
+            "parent_id": new_parent_id,
+        });
+
+        let res = self
+            .agent
+            .patch(&url)
+            .set("Authorization", &self.config.bearer_header())
+            .set("Accept", "application/json")
+            .set("Content-Type", "application/json")
+            .send_json(payload);
+
+        match res {
+            Ok(resp) => {
+                let parsed: ApiResponse<LocationDto> =
+                    resp.into_json()
+                        .map_err(|err| InventoryError::Deserialization {
+                            message: err.to_string(),
+                        })?;
+                Ok(match parsed {
+                    ApiResponse::Wrapped { payload } => payload,
+                    ApiResponse::Direct(dto) => dto,
+                })
+            }
+            Err(ureq::Error::Status(status, _)) => Err(Self::map_http_status(
+                status,
+                &format!("locations/{location_id}"),
+            )),
             Err(ureq::Error::Transport(err)) => Err(InventoryError::HttpTransport {
                 message: err.to_string(),
             }),

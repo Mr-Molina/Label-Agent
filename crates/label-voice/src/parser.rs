@@ -95,6 +95,8 @@ fn extract_box_code(tokens: &[&str]) -> Option<String> {
                 | "lbx"
                 | "odt"
                 | "boxlabels"
+                | "bt320"
+                | "tspl"
                 | "dymo"
                 | "pdf"
                 | "the"
@@ -269,7 +271,8 @@ pub fn parse_spoken_command(utterance: &str) -> Result<VoiceCommandIntent, Voice
         });
     }
 
-    // 3. Query Box Contents: "what is inside...", "contents of...", "query box..."
+    // 3. Query Box Contents: "what is inside...", "contents of...",
+    // "query box..."
     let is_query = lower.contains("inside")
         || lower.contains("contents")
         || lower.contains("query")
@@ -288,14 +291,15 @@ pub fn parse_spoken_command(utterance: &str) -> Result<VoiceCommandIntent, Voice
     let is_print = lower.starts_with("print") || lower.contains(" print ");
 
     if is_print {
-        let format =
-            if lower.contains("brother") || lower.contains("ptouch") || lower.contains("lbx") {
-                LabelFormat::BrotherPtouchLbx
-            } else if lower.contains("odt") || lower.contains("boxlabels") {
-                LabelFormat::BoxLabelsOdt
-            } else {
-                LabelFormat::Dymo30256Pdf
-            };
+        let format = if lower.contains("bt320") || lower.contains("tspl") {
+            LabelFormat::Bt320Tspl
+        } else if lower.contains("brother") || lower.contains("ptouch") || lower.contains("lbx") {
+            LabelFormat::BrotherPtouchLbx
+        } else if lower.contains("odt") || lower.contains("boxlabels") {
+            LabelFormat::BoxLabelsOdt
+        } else {
+            LabelFormat::Dymo30256Pdf
+        };
 
         let box_code = extract_box_code(&tokens).ok_or(VoiceError::MissingIdentifier {
             context: "print box label command requires box code",
@@ -366,6 +370,27 @@ mod tests {
             VoiceCommandIntent::PrintBoxLabel {
                 box_code: "BOX-042".to_string(),
                 format: LabelFormat::BoxLabelsOdt,
+            }
+        );
+
+        // BT-320 TSPL format
+        let bt320 = parse_spoken_command("print label for BOX-042 on bt320")
+            .expect("parsing bt320 command should succeed");
+        assert_eq!(
+            bt320,
+            VoiceCommandIntent::PrintBoxLabel {
+                box_code: "BOX-042".to_string(),
+                format: LabelFormat::Bt320Tspl,
+            }
+        );
+
+        let tspl = parse_spoken_command("print tspl label for BOX-042")
+            .expect("parsing tspl command should succeed");
+        assert_eq!(
+            tspl,
+            VoiceCommandIntent::PrintBoxLabel {
+                box_code: "BOX-042".to_string(),
+                format: LabelFormat::Bt320Tspl,
             }
         );
     }

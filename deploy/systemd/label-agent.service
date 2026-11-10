@@ -8,9 +8,10 @@ Wants=network-online.target
 Type=simple
 User=console-admin
 Group=console-admin
-SupplementaryGroups=audio lp
+SupplementaryGroups=lp audio
+EnvironmentFile=-/etc/label-agent/label-agent.env
 
-ExecStart=/usr/local/bin/label-agent --daemon --spool-dir /tmp/label-agent --printer Dymo_LabelWriter_450
+ExecStart=/usr/local/bin/label-agent --daemon --listen 127.0.0.1:8090 --spool-dir /tmp/label-agent-spool
 Restart=on-failure
 RestartSec=5s
 
@@ -25,6 +26,7 @@ PrivateTmp=no
 ProtectSystem=strict
 ProtectHome=read-only
 ReadWritePaths=/tmp
+DeviceAllow=/dev/usb/lp0 rw
 NoNewPrivileges=true
 ProtectKernelTunables=true
 ProtectKernelModules=true

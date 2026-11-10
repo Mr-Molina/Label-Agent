@@ -1,0 +1,2 @@
+# BT320 Label Printer udev rule
+SUBSYSTEM=="usbmisc", KERNEL=="lp*", ATTRS{idVendor}=="0fe6", ATTRS{idProduct}=="811e", ATTRS{serial}=="B320156051611874", MODE="0660", GROUP="lp", SYMLINK+="bt320-printer"

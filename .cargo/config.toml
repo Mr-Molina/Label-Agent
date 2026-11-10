@@ -13,4 +13,5 @@
 linker = "aarch64-linux-gnu-gcc"
 rustflags = [
     "-C", "target-cpu=cortex-a53",
+    "-C", "target-feature=+aes,+sha2,+crc",
 ]

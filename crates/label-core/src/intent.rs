@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 
 /// Target output physical format and document layout for label generation.
 #[non_exhaustive]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
 pub enum LabelFormat {
     /// Dymo `LabelWriter` 450 thermal label (30256, 4.0" x 2.3098")
     /// rendered as PDF.
@@ -17,6 +17,9 @@ pub enum LabelFormat {
     BoxLabelsOdt,
     /// Brother P-Touch template format (.lbx) with 1-bit monochrome raster.
     BrotherPtouchLbx,
+    /// BT-320 TSPL direct thermal label format (59 mm x 102 mm).
+    #[default]
+    Bt320Tspl,
 }
 
 /// Print execution mode governing physical output dispatch.
@@ -78,6 +81,8 @@ mod tests {
         assert_eq!(fmt, cloned);
         assert_ne!(fmt, LabelFormat::BoxLabelsOdt);
         assert_ne!(fmt, LabelFormat::BrotherPtouchLbx);
+        assert_ne!(fmt, LabelFormat::Bt320Tspl);
+        assert_eq!(LabelFormat::default(), LabelFormat::Bt320Tspl);
     }
 
     #[test]

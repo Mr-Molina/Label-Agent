@@ -13,11 +13,11 @@ use serde::Serialize;
 #[non_exhaustive]
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct PageGeometry {
-    width_in: f64,
-    height_in: f64,
-    margin_in: f64,
-    qr_size_in: f64,
-    icon_size_in: f64,
+    width_pt: f64,
+    height_pt: f64,
+    margin_pt: f64,
+    qr_size_pt: f64,
+    icon_size_pt: f64,
 }
 
 impl PageGeometry {
@@ -54,11 +54,11 @@ impl PageGeometry {
             });
         }
         Ok(Self {
-            width_in,
-            height_in,
-            margin_in,
-            qr_size_in,
-            icon_size_in,
+            width_pt: width_in * 72.0,
+            height_pt: height_in * 72.0,
+            margin_pt: margin_in * 72.0,
+            qr_size_pt: qr_size_in * 72.0,
+            icon_size_pt: icon_size_in * 72.0,
         })
     }
 
@@ -67,66 +67,87 @@ impl PageGeometry {
     #[must_use]
     pub const fn dymo_30256() -> Self {
         Self {
-            width_in: 4.0,
-            height_in: 2.3098,
-            margin_in: 0.1701,
-            qr_size_in: 0.7,
-            icon_size_in: 0.7,
+            width_pt: 288.0,
+            height_pt: 166.3056,
+            margin_pt: 12.2472,
+            qr_size_pt: 50.4,
+            icon_size_pt: 50.4,
         }
     }
 
+    /// Geometry for standard 59 mm x 102 mm thermal label stock.
+    pub const THERMAL_59X102_MM: Self = Self {
+        width_pt: 167.24,
+        height_pt: 289.13,
+        margin_pt: 11.34,
+        qr_size_pt: 50.40,
+        icon_size_pt: 50.40,
+    };
+
     /// Returns the page width in inches.
     #[must_use]
-    pub const fn width_in(&self) -> f64 {
-        self.width_in
+    pub fn width_in(&self) -> f64 {
+        self.width_pt / 72.0
     }
 
     /// Returns the page height in inches.
     #[must_use]
-    pub const fn height_in(&self) -> f64 {
-        self.height_in
+    pub fn height_in(&self) -> f64 {
+        self.height_pt / 72.0
     }
 
     /// Returns the page border margin in inches.
     #[must_use]
-    pub const fn margin_in(&self) -> f64 {
-        self.margin_in
+    pub fn margin_in(&self) -> f64 {
+        self.margin_pt / 72.0
     }
 
     /// Returns the square QR code dimension in inches.
     #[must_use]
-    pub const fn qr_size_in(&self) -> f64 {
-        self.qr_size_in
+    pub fn qr_size_in(&self) -> f64 {
+        self.qr_size_pt / 72.0
     }
 
     /// Returns the square category icon dimension in inches.
     #[must_use]
-    pub const fn icon_size_in(&self) -> f64 {
-        self.icon_size_in
+    pub fn icon_size_in(&self) -> f64 {
+        self.icon_size_pt / 72.0
     }
 
-    /// Computes page width in PostScript points (1 inch = 72 points).
+    /// Returns the page width in PostScript points.
     #[must_use]
-    pub fn width_pt(&self) -> f64 {
-        self.width_in * 72.0
+    pub const fn width_pt(&self) -> f64 {
+        self.width_pt
     }
 
-    /// Computes page height in PostScript points (1 inch = 72 points).
+    /// Returns the page height in PostScript points.
     #[must_use]
-    pub fn height_pt(&self) -> f64 {
-        self.height_in * 72.0
+    pub const fn height_pt(&self) -> f64 {
+        self.height_pt
     }
 
-    /// Computes margin in PostScript points (1 inch = 72 points).
+    /// Returns the margin in PostScript points.
     #[must_use]
-    pub fn margin_pt(&self) -> f64 {
-        self.margin_in * 72.0
+    pub const fn margin_pt(&self) -> f64 {
+        self.margin_pt
+    }
+
+    /// Returns the square QR code dimension in PostScript points.
+    #[must_use]
+    pub const fn qr_size_pt(&self) -> f64 {
+        self.qr_size_pt
+    }
+
+    /// Returns the square category icon dimension in PostScript points.
+    #[must_use]
+    pub const fn icon_size_pt(&self) -> f64 {
+        self.icon_size_pt
     }
 }
 
 impl Default for PageGeometry {
     fn default() -> Self {
-        Self::dymo_30256()
+        Self::THERMAL_59X102_MM
     }
 }
 
@@ -325,6 +346,17 @@ mod tests {
         assert!((geo.width_pt() - 288.0).abs() < 1e-6);
         assert!((geo.height_pt() - 166.3056).abs() < 1e-4);
         assert!((geo.margin_pt() - 12.2472).abs() < 1e-4);
+    }
+
+    #[test]
+    fn test_page_geometry_thermal_59x102_mm_constants() {
+        let geo = PageGeometry::THERMAL_59X102_MM;
+        assert!((geo.width_pt() - 167.24).abs() < 1e-6);
+        assert!((geo.height_pt() - 289.13).abs() < 1e-6);
+        assert!((geo.margin_pt() - 11.34).abs() < 1e-6);
+        assert!((geo.qr_size_pt() - 50.40).abs() < 1e-6);
+        assert!((geo.icon_size_pt() - 50.40).abs() < 1e-6);
+        assert_eq!(PageGeometry::default(), PageGeometry::THERMAL_59X102_MM);
     }
 
     #[test]
