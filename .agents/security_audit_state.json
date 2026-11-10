@@ -1,0 +1,21 @@
+{
+  "workspace": "/home/console-admin/Github/Label-Agent",
+  "manifests_detected": {
+    "cargo": [
+      "/home/console-admin/Github/Label-Agent/Cargo.lock"
+    ],
+    "npm": [],
+    "python": []
+  },
+  "scans": {
+    "cargo_audit": {
+      "tool": "cargo",
+      "status": "completed",
+      "exit_code": 101,
+      "stdout_preview": "",
+      "stderr_preview": "error: no such command: `audit`\n\nhelp: a command with a similar name exists: `add`\n\nhelp: view all installed commands with `cargo --list`\nhelp: find a package to install `audit` with `cargo search cargo-audit`\n"
+    }
+  },
+  "timestamp": 1794270141.0821579,
+  "status": "success"
+}

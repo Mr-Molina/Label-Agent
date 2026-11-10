@@ -1,6 +1,6 @@
 # Label-Agent
 
-> **Label-Agent** is an autonomous, 100% pure-Rust voice-driven inventory and physical labeling appliance. Designed to run headless with a sub-25 MiB memory footprint on edge ARM64 hardware (Raspberry Pi 3 Model B+), it captures natural-language voice commands, resolves intent against the `Inventory-Server` 6-level location and asset taxonomy, compiles high-density QR and category-indexed thermal labels (`Dymo 30256` 4"×2.31", `Brother P-Touch` `.lbx`, and `ODF/ODT`) strictly in RAM (`tmpfs`), and dispatches jobs directly to physical label printers. **Rust-only, Rust-always: zero garbage collection, zero heavy interpreters, and compile-time hardware/domain correctness.**
+> **Label-Agent** is an autonomous, 100% pure-Rust voice-driven inventory and physical labeling appliance. Designed to run headless with a sub-25 MiB memory footprint on edge ARM64 hardware (Libre Computer AML-S905X-CC "Le Potato"), it captures natural-language voice commands, resolves intent against the `Inventory-Server` 6-level location and asset taxonomy, compiles high-density QR and category-indexed thermal labels (`Dymo 30256` 4"×2.31", `Brother P-Touch` `.lbx`, and `ODF/ODT`) strictly in RAM (`tmpfs`), and dispatches jobs directly to physical label printers. **Rust-only, Rust-always: zero garbage collection, zero heavy interpreters, and compile-time hardware/domain correctness.**
 
 ---
 
@@ -10,7 +10,7 @@ Label-Agent operates an end-to-end, zero-interpreter pipeline designed for low-m
 
 ```mermaid
 flowchart LR
-    subgraph Pi3B ["Raspberry Pi 3B+ (10.0.0.10 | Debian 13 aarch64 | 1GB RAM)"]
+    subgraph LePotato ["Libre Computer Le Potato AML-S905X-CC (10.0.0.68 | Debian 13 trixie aarch64 | 2GB RAM)"]
         Mic["USB / ALSA Audio Input<br/>(label-voice)"] --> Intent["Voice Intent Resolver<br/>(label-voice -> label-core)"]
         Intent --> InvClient["Snipe-IT API Client<br/>(label-inventory / ureq)"]
         Intent --> Renderer["Pure-Rust Label Compiler<br/>(label-render -> /tmp tmpfs)"]

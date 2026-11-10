@@ -1,6 +1,6 @@
 //! Audio PCM configuration and utterance stream capture abstractions.
 //!
-//! Provides hardware PCM audio parameters tuned for Raspberry Pi ALSA capture
+//! Provides hardware PCM audio parameters tuned for Le Potato ALSA capture
 //! and deterministic utterance queues for voice agent testing and offline
 //! processing.
 
@@ -31,12 +31,12 @@ impl PcmConfig {
         }
     }
 
-    /// Default PCM configuration tuned for Raspberry Pi 3B ALSA audio capture.
+    /// Default PCM configuration tuned for Libre Computer AML-S905X-CC ALSA.
     ///
     /// Configured for 16 kHz mono audio with 20 ms frames (320 samples per frame),
     /// optimal for speech recognition engines.
     #[must_use]
-    pub const fn pi3b_alsa_default() -> Self {
+    pub const fn lepotato_alsa_default() -> Self {
         Self {
             sample_rate_hz: 16_000,
             channels: 1,
@@ -71,7 +71,7 @@ impl PcmConfig {
 
 impl Default for PcmConfig {
     fn default() -> Self {
-        Self::pi3b_alsa_default()
+        Self::lepotato_alsa_default()
     }
 }
 
@@ -137,8 +137,8 @@ mod tests {
         assert_eq!(config.frame_ms(), 20);
         assert_eq!(config.samples_per_frame(), 320);
 
-        let pi3b = PcmConfig::pi3b_alsa_default();
-        assert_eq!(config, pi3b);
+        let lepotato = PcmConfig::lepotato_alsa_default();
+        assert_eq!(config, lepotato);
     }
 
     #[test]

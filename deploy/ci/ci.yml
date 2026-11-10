@@ -51,7 +51,7 @@ jobs:
         run: cargo test --workspace --all-targets
 
   cross-check:
-    name: ARM64 Cross-Compilation Check (Raspberry Pi 3B+)
+    name: ARM64 Cross-Compilation Check (Libre Computer Le Potato AML-S905X-CC)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository

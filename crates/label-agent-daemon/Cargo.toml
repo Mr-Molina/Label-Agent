@@ -6,7 +6,7 @@ rust-version.workspace = true
 license.workspace = true
 authors.workspace = true
 repository.workspace = true
-description = "Autonomous label printing appliance daemon for Raspberry Pi 3B+"
+description = "Autonomous label printing appliance daemon for Libre Computer AML-S905X-CC (Le Potato)"
 
 [[bin]]
 name = "label-agent"

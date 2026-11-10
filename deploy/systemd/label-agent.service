@@ -14,7 +14,7 @@ ExecStart=/usr/local/bin/label-agent --daemon --spool-dir /tmp/label-agent --pri
 Restart=on-failure
 RestartSec=5s
 
-# Resource limits targeting Raspberry Pi 3 Model B+ (1GB RAM)
+# Resource limits targeting Libre Computer AML-S905X-CC "Le Potato" (2GB RAM)
 MemoryHigh=192M
 MemoryMax=256M
 CPUQuota=350%
