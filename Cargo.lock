@@ -251,7 +251,9 @@ name = "label-voice"
 version = "0.1.0"
 dependencies = [
  "label-core",
+ "serde_json",
  "thiserror",
+ "ureq",
 ]
 
 [[package]]

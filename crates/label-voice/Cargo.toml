@@ -10,7 +10,9 @@ description = "Voice command capture abstractions and intent parser for Label-Ag
 
 [dependencies]
 label-core = { workspace = true }
+serde_json = { workspace = true }
 thiserror = { workspace = true }
+ureq = { workspace = true }
 
 [lints]
 workspace = true
