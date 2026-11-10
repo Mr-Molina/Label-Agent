@@ -16,6 +16,6 @@
       "stderr_preview": "error: no such command: `audit`\n\nhelp: a command with a similar name exists: `add`\n\nhelp: view all installed commands with `cargo --list`\nhelp: find a package to install `audit` with `cargo search cargo-audit`\n"
     }
   },
-  "timestamp": 1794270141.0821579,
+  "timestamp": 1794325502.9488337,
   "status": "success"
 }

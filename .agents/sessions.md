@@ -2,6 +2,26 @@
 
 > **CRITICAL RULE:** All new entries MUST be prepended directly below this block. When an agent wakes up, it reads the top entry. When it sleeps, it writes the top entry.
 
+## 2026-11-10 11:07 | Antigravity Orchestrator | [Label-Agent] Retarget to Libre Computer Le Potato (`10.0.0.68`), `59mm x 102mm` `BT320` (`TSPL2`) Compiler, `UsbLpTransport`, `https://inventory.molinadeveloping.com`, API-Key STT & Live Deployment (`WO-018`–`WO-031`)
+**Agent**: Orchestrator & Specialist Swarm (`WO-018`–`WO-031`)
+**Host OS**: Linux (`x86_64` workstation cross-compiling `aarch64-unknown-linux-gnu` for `sbc-lepotato` / `10.0.0.68`)
+**Branch**: `main`
+**Working Tree**: Clean
+
+### Completed This Session
+- **Hardware Retargeting (`sbc-lepotato` / `10.0.0.68`)** `[EXECUTED & VERIFIED]`:
+  - Probed `10.0.0.10` (`sbc-lyrion`, offline) and migrated target to `console-admin@10.0.0.68` (`sbc-lepotato.home.local`, **Libre Computer AML-S905X-CC "Le Potato"**, 4x ARM Cortex-A53 `aarch64` with hardware `+aes,+sha2,+crc`, `1.9 GiB` DDR3 RAM, `16 GB` eMMC on `btrfs`, `970 MiB` `/tmp` `tmpfs`, Debian 13.7 `trixie` kernel `6.12.73`).
+  - Authored `sbc_lepotato_dossier.md` and `deploy/lepotato-prep-checklist.md`.
+- **Exclusive `59 mm × 102 mm` Thermal Geometry & `BT320` `TSPL2` Compiler (`label-core`, `label-render`)** `[EXECUTED & VERIFIED]`:
+  - Set `PageGeometry::THERMAL_59X102_MM` (`167.24 pt × 289.13 pt` / `472 × 816 dots` @ 203 DPI) and `LabelFormat::Bt320Tspl` as defaults.
+  - Implemented `compile_bt320_tspl` in `crates/label-render/src/tspl.rs` emitting native `SIZE 59 mm, 102 mm` TSPL2 streams (`QRCODE`, `BOX`, `BAR`, `TEXT`, `PRINT 1,1`) for the attached `BT320 Printer` (`0fe6:811e`, Serial `B320156051611874`).
+- **Direct `/dev/bt320-printer` (`usblp`) Transport, `https://inventory.molinadeveloping.com` & API-Key STT** `[EXECUTED & VERIFIED]`:
+  - Implemented `UsbLpTransport` (`crates/label-print/src/usb_lp.rs`), `compute_rms_s16le` + 44-byte RIFF/WAV framing (`crates/label-voice/src/vad.rs`), and `ApiKeySttClient` + zero-dependency RFC 4648 Base64 encoder (`crates/label-voice/src/stt_client.rs`).
+  - Wired `DEFAULT_INVENTORY_URL = "https://inventory.molinadeveloping.com"` and HTTP `:8090` control/health server (`GET /healthz`, `POST /api/v1/command`) in `crates/label-agent-daemon`.
+- **Verification & Live `10.0.0.68` Deployment** `[EXECUTED & VERIFIED]`:
+  - Passed `104/104` unit tests, `0` Clippy warnings, and `0` `google_rust_audit.py --strict` findings; cross-compiled `target/aarch64-unknown-linux-gnu/release/label-agent`.
+  - Provisioned `alsa-utils`, `cups-client`, `/etc/udev/rules.d/99-bt320-printer.rules` (`/dev/bt320-printer -> usb/lp0`), `/etc/label-agent/label-agent.env`, and `label-agent.service` (`active`, `~308 KiB` RAM) on `10.0.0.68`.
+
 ## 2026-11-07 | Orchestrator & Multi-Agent Swarm | Establish Pure-Rust Label-Agent Workspace & Pi 3B+ Edge Infrastructure
 **Agent**: Orchestrator & Specialist Swarm (WO-001 - WO-017)
 **Host OS**: Linux (x86_64 build host targeting aarch64-unknown-linux-gnu Pi 3B+)
